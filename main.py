@@ -7,7 +7,10 @@ import logging
 from datetime import datetime
 import os
 
-TOKEN = os.environ.get("DISCORD_TOKEN")
+# config.json 파일을 읽어와서 토큰 값을 가져옵니다.
+with open('config.json') as config_file:
+    config = json.load(config_file)
+    TOKEN = config['DISCORD_TOKEN']
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
