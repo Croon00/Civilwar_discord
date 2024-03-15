@@ -5,10 +5,10 @@ import itertools
 import random
 import logging
 from datetime import datetime
-import os
+import json
 
 # config.json 파일을 읽어와서 토큰 값을 가져옵니다.
-with open('config.json') as config_file:
+with open("config.json") as config_file:
     config = json.load(config_file)
     TOKEN = config['DISCORD_TOKEN']
 
