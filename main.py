@@ -69,6 +69,12 @@ conn.commit()
 
 @bot.event
 async def on_ready():
+    # SQLite 데이터베이스 연결
+    global conn, cursor
+    conn = sqlite3.connect('civilwar_user.db')
+    cursor = conn.cursor()
+
+    
     logger.info('다음으로 로그인')
     logger.info(bot.user.name)
     logger.info('connection was successful')
