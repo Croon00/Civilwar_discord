@@ -357,10 +357,6 @@ async def my_help(ctx):
     
     await ctx.send(embed=embed)
 
-# 봇 종료 시 SQLite 연결 해제
-@bot.event
-async def on_disconnect():
-    conn.close()
 
 bot.run(TOKEN)
 
