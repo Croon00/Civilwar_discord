@@ -32,7 +32,9 @@ cursor = conn.cursor()
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS users (
     username TEXT PRIMARY KEY,
-    score INTEGER
+    score INTEGER,
+    top_score INTEGER,
+    low_score INTEGER
 )
 ''')
 
@@ -98,10 +100,10 @@ async def add_info(ctx, username: str,  score: int):
 async def all_user_info(ctx):
     all_info = []
     # 모든 사용자 정보 조회
-    cursor.execute('SELECT * FROM users')
+    cursor.execute('SELECT * FROM users ORDER BY score DESC')
     rows = cursor.fetchall()
     for row in rows:
-        user_info_str = f'name: {row[0]},  Score: {row[1]}'
+        user_info_str = f'{row[0]} : {row[1]}, Top : {row[2]} Low : {row[3]}'
         all_info.append(user_info_str)
 
     if all_info:
@@ -190,8 +192,12 @@ async def team1_win(ctx):
 
     for username, score in team1_scores.items():
         cursor.execute('UPDATE users SET score = score + 1 WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
     for username, score in team2_scores.items():
         cursor.execute('UPDATE users SET score = score - 1 WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
     conn.commit()
 
     # 매치 정보 추가
@@ -234,8 +240,12 @@ async def team2_win(ctx):
 
     for username, score in team1_scores.items():
         cursor.execute('UPDATE users SET score = score - 1 WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
     for username, score in team2_scores.items():
         cursor.execute('UPDATE users SET score = score + 1 WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
+        cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
     conn.commit()
 
     # 매치 정보 추가
