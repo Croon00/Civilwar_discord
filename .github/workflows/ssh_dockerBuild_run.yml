@@ -17,9 +17,9 @@ jobs:
     - name: Stop and remove previous container and Update GitHub repository
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.GCP_HOST }}  # GitHub Secrets에 저장된 GCP 서버의 IP 주소
-        username: ${{ secrets.GCP_USERNAME }}  # GCP 서버의 유저명
-        key: ${{ secrets.GCP_SSH_KEY }}  # GCP 서버에 접속하기 위한 SSH 키
+        host: ${{ secrets.HOST }}  # GitHub Secrets에 저장된 GCP 서버의 IP 주소
+        username: ${{ secrets.USERNAME }}  # GCP 서버의 유저명
+        key: ${{ secrets.SSH_KEY }}  # GCP 서버에 접속하기 위한 SSH 키
         port: 22
         script: |
           docker stop civilwar_bot || true
