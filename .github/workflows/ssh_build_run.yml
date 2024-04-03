@@ -1,0 +1,26 @@
+name: Build and Run Docker Container
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_run_docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    # 이전에 실행 중이던 도커 컨테이너 중지 및 삭제
+    - name: Stop and remove previous container
+      run: |
+        docker stop civilwar_bot || true
+        docker rm civilwar_bot || true
+
+    - name: Build Docker Image
+      run: docker build -t civilwar_bot .
+      
+    - name: Run Docker Container
+      run: docker run --name civilwar_bot -d -v $(pwd):/app -p 80:8080 civilwar_bot
