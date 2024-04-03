@@ -15,7 +15,7 @@ jobs:
 
     # SSH Key 값 출력
     - name: Print SSH Key for debugging
-      run: echo "가나다"
+      run: echo "${{ secrets.USERNAME }}"
     
     # GCP 서버에 SSH로 접속하여 이전에 실행 중이던 도커 컨테이너 중지 및 삭제 및 GitHub 레포지토리 업데이트
     - name: Stop and remove previous container and Update GitHub repository
