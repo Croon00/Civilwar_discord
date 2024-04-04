@@ -1,0 +1,26 @@
+name: Build and Run Docker Container
+
+on:
+  push:
+      branches: [ main ]
+      paths:
+        - '**'
+
+jobs:
+  build_and_run_docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+  
+    # GCP 서버에 SSH로 접속하여 이전에 실행 중이던 도커 컨테이너 중지 및 삭제 및 GitHub 레포지토리 업데이트
+    - name: Stop and remove previous container and Update GitHub repository
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}  # GitHub Secrets에 저장된 GCP 서버의 IP 주소
+        username: ${{ secrets.USERNAME }}  # GCP 서버의 유저명
+        key: ${{ secrets.SSH_KEY }}  # GCP 서버에 접속하기 위한 SSH 키
+        port: 22
+        script: |
+          cd ${{ github.event.repository.name }}
+          pwd
+          sh deploy-ssh.sh
