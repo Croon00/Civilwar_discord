@@ -19,7 +19,7 @@ jobs:
         host: ${{ secrets.HOST }}  # GitHub Secrets에 저장된 GCP 서버의 IP 주소
         username: ${{ secrets.USERNAME }}  # GCP 서버의 유저명
         key: ${{ secrets.SSH_KEY }}  # GCP 서버에 접속하기 위한 SSH 키
-        port: 8000
+        port: 22
         script: |
           whoami
           docker stop civilwar_bot || true
