@@ -21,9 +21,6 @@ jobs:
         key: ${{ secrets.SSH_KEY }}  # GCP 서버에 접속하기 위한 SSH 키
         port: 22
         script: |
-          whoami
-          docker stop civilwar_bot || true
-          docker rm civilwar_bot || true
-          sh deploy-ssh.sh  # deploy-ssh.sh 스크립트 실행
-          docker build -t civilwar_bot .
-          docker run --name civilwar_bot -d -v $(pwd):/app -p 80:8080 civilwar_bot
+          cd ${{ github.event.repository.name }}
+          pwd
+          sh deploy-ssh.sh
