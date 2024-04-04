@@ -2,21 +2,16 @@ name: Build and Run Docker Container
 
 on:
   push:
-    branches:
-      - main
+      branches: [ main ]
+      paths:
+        - '**'
 
 jobs:
   build_and_run_docker:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
-
-    # SSH Key 값 출력
-    - name: Print SSH Key for debugging
-      run: echo "${{ secrets.USERNAME }}"
-    
+  
     # GCP 서버에 SSH로 접속하여 이전에 실행 중이던 도커 컨테이너 중지 및 삭제 및 GitHub 레포지토리 업데이트
     - name: Stop and remove previous container and Update GitHub repository
       uses: appleboy/ssh-action@v1.0.3
@@ -26,6 +21,7 @@ jobs:
         key: ${{ secrets.SSH_KEY }}  # GCP 서버에 접속하기 위한 SSH 키
         port: 22
         script: |
+          whoami
           docker stop civilwar_bot || true
           docker rm civilwar_bot || true
           sh deploy-ssh.sh  # deploy-ssh.sh 스크립트 실행
