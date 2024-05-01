@@ -374,8 +374,8 @@ async def my_help(ctx):
     embed.add_field(name="팀나누기", value="(이름 * 10)을 통해 5대 5로 최소한의 점수로 팀 나누기")
     embed.add_field(name="팀1승리", value="가장 최근 나눈 팀을 기준으로 1팀 승리 ")
     embed.add_field(name="팀2승리", value="가장 최근 나눈 팀을 기준으로 2팀 승리 ")
-    embed.add_filed(name="같은팀승률", value="(이름 2 ~ 5명)을 통해 해당 사람들이 같은팀일 경우 승률 확인")
-    embed.add_filed(name="상대승률", value="(이름, 이름)을 통해 해당 사람들이 상대팀일 경우 승률 확인")
+    embed.add_field(name="같은팀승률", value="(이름 2 ~ 5명)을 통해 해당 사람들이 같은팀일 경우 승률 확인")
+    embed.add_field(name="상대승률", value="(이름, 이름)을 통해 해당 사람들이 상대팀일 경우 승률 확인")
     # Add more fields as needed
     
     await ctx.send(embed=embed)
