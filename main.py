@@ -4,7 +4,8 @@ import sqlite3
 import itertools
 import random
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+import pytz
 import json
 
 # config.json 파일을 읽어와서 토큰 값을 가져옵니다.
@@ -184,8 +185,13 @@ async def team1_win(ctx):
         await ctx.send("팀부터 나눠라")
         return
     
-    # 경기 종료 시각
-    match_end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+     # 한국 시간을 얻습니다.
+    korea_timezone = pytz.timezone('Asia/Seoul')
+    korea_now = datetime.now(tz=korea_timezone)
+    
+    # 경기 종료 시각을 설정합니다.
+    match_end_time = korea_now.strftime('%Y-%m-%d %H:%M:%S')
 
     # 팀 1이 승리한 경우
     winner_team = 1
@@ -232,8 +238,13 @@ async def team2_win(ctx):
         await ctx.send("팀부터 나눠라")
         return
     
-    # 경기 종료 시각
-    match_end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # 한국 시간을 얻습니다.
+    korea_timezone = pytz.timezone('Asia/Seoul')
+    korea_now = datetime.now(tz=korea_timezone)
+    
+    # 경기 종료 시각을 설정합니다.
+    match_end_time = korea_now.strftime('%Y-%m-%d %H:%M:%S')
 
     # 팀 2이 승리한 경우
     winner_team = 2
@@ -363,10 +374,99 @@ async def my_help(ctx):
     embed.add_field(name="팀나누기", value="(이름 * 10)을 통해 5대 5로 최소한의 점수로 팀 나누기")
     embed.add_field(name="팀1승리", value="가장 최근 나눈 팀을 기준으로 1팀 승리 ")
     embed.add_field(name="팀2승리", value="가장 최근 나눈 팀을 기준으로 2팀 승리 ")
+    embed.add_filed(name="같은팀승률", value="(이름 2 ~ 5명)을 통해 해당 사람들이 같은팀일 경우 승률 확인")
+    embed.add_filed(name="상대승률", value="(이름, 이름)을 통해 해당 사람들이 상대팀일 경우 승률 확인")
     # Add more fields as needed
     
     await ctx.send(embed=embed)
 
+@bot.command(name='같은팀승률')
+async def calculate_same_team_win_rate(ctx, *usernames):
+    if len(usernames) < 2 or len(usernames) > 5:
+        await ctx.send('2명에서 5명의 사용자 이름을 입력해주세요.')
+        return
+
+    user_matches = {username: {} for username in usernames}  # 각 사용자별로 빈 딕셔너리로 초기화
+
+    for username in usernames:
+        cursor.execute('''
+            SELECT match_id, win_loss
+            FROM user_matches
+            WHERE username = ?
+        ''', (username,))
+        rows = cursor.fetchall()
+        for match_id, win_loss in rows:
+            user_matches[username][match_id] = win_loss
+
+    # 같은 팀 승률 계산
+    total_same_team = 0
+    total_same_team_win = 0
+
+    # 모든 매치 ID에 대해 확인
+    for match_id in set.intersection(*(set(matches.keys()) for matches in user_matches.values())):
+        same_team_win = all(user_matches[username][match_id] == 'win' for username in usernames)
+        same_team_loss = all(user_matches[username][match_id] == 'loss' for username in usernames)
+
+        if same_team_win:
+            total_same_team_win += 1
+        if same_team_win or same_team_loss:
+            total_same_team += 1
+
+    if total_same_team > 0:
+        win_rate = (total_same_team_win / total_same_team) * 100
+    else:
+        win_rate = 0
+
+    await ctx.send(f'같은 팀일 때 승률: {win_rate:.2f}%')
+
+
+@bot.command(name='상대승률')
+async def calculate_opponent_win_rate(ctx, username1, username2):
+    # 각 사용자의 매치 기록을 가져옴
+    user_matches = {username: {} for username in [username1, username2]}
+
+    for username in [username1, username2]:
+        cursor.execute('''
+            SELECT match_id, win_loss
+            FROM user_matches
+            WHERE username = ?
+        ''', (username,))
+        rows = cursor.fetchall()
+        for match_id, win_loss in rows:
+            user_matches[username][match_id] = win_loss
+
+    # 서로 다른 팀일 때의 승률 계산
+    total_opponent_games = {username: set() for username in [username1, username2]}
+    total_opponent_win = {username: 0 for username in [username1, username2]}
+
+    # 모든 매치 ID에 대해 확인
+    for match_id in set.intersection(set(user_matches[username1].keys()), set(user_matches[username2].keys())):
+        # username1이 승리하고 username2가 패배한 경우
+        if user_matches[username1][match_id] == 'win' and user_matches[username2][match_id] == 'loss':
+            total_opponent_games[username2].add(match_id)
+            total_opponent_win[username1] += 1
+        # username2가 승리하고 username1이 패배한 경우
+        elif user_matches[username1][match_id] == 'loss' and user_matches[username2][match_id] == 'win':
+            total_opponent_games[username1].add(match_id)
+            total_opponent_win[username2] += 1
+
+    # 서로 다른 매치에서 겹치는 부분을 제외하고 중복된 매치 수를 합침
+    total_opponent_games_combined = len(total_opponent_games[username1] | total_opponent_games[username2])
+
+    # 승률 계산
+    opponent_win_rates = {}
+    for username in [username1, username2]:
+        if total_opponent_games_combined > 0:
+            opponent_win_rates[username] = (total_opponent_win[username] / total_opponent_games_combined) * 100
+        else:
+            opponent_win_rates[username] = 0
+
+    # 결과 출력
+    result_message = f'{username1} vs {username2}\n'
+    for username in [username1, username2]:
+        result_message += f'{username}의 상대승률: {opponent_win_rates[username]:.2f}%\n'
+
+    await ctx.send(result_message)
 
 bot.run(TOKEN)
 
