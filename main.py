@@ -468,5 +468,21 @@ async def calculate_opponent_win_rate(ctx, username1, username2):
 
     await ctx.send(result_message)
 
+@bot.command(name='개인승률')
+async def calculate_individual_win_rate(ctx, username):
+    cursor.execute("SELECT COUNT(*) FROM user_matches WHERE username = ? AND win_loss = 'win'", (username,))
+    wins = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM user_matches WHERE username = ? AND win_loss = 'loss'", (username,))
+    losses = cursor.fetchone()[0]
+    total_matches = wins + losses
+
+    if total_matches == 0:
+        win_rate = 0
+    else:
+        win_rate = (wins / total_matches) * 100
+
+    await ctx.send(f'{username}님의 개인 승률: {win_rate:.2f}%')
+
+
 bot.run(TOKEN)
 
