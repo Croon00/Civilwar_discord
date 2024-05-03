@@ -81,7 +81,7 @@ async def on_ready():
     logger.info('다음으로 로그인')
     logger.info(bot.user.name)
     logger.info('connection was successful')
-    await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="!!명령어 로 도움말 확인")
+    await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="!!명령어 로 도움말 확인"))
 
 @bot.command(name="테스트")
 async def test(ctx, text):
