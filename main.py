@@ -81,7 +81,7 @@ async def on_ready():
     logger.info('다음으로 로그인')
     logger.info(bot.user.name)
     logger.info('connection was successful')
-    await bot.change_presence(status=discord.Status.online, activity=None)
+    await bot.change_presence(status=discord.Status.online, activity=discord.Game(name="!!명령어 로 도움말 확인")
 
 @bot.command(name="테스트")
 async def test(ctx, text):
@@ -376,6 +376,7 @@ async def my_help(ctx):
     embed.add_field(name="팀2승리", value="가장 최근 나눈 팀을 기준으로 2팀 승리 ")
     embed.add_field(name="같은팀승률", value="(이름 2 ~ 5명)을 통해 해당 사람들이 같은팀일 경우 승률 확인")
     embed.add_field(name="상대승률", value="(이름, 이름)을 통해 해당 사람들이 상대팀일 경우 승률 확인")
+    embed.add_field(name="개인승률", value="(이름)을 통해 해당 사람의 여태까지의 승률 확인")
     # Add more fields as needed
     
     await ctx.send(embed=embed)
@@ -403,21 +404,27 @@ async def calculate_same_team_win_rate(ctx, *usernames):
     total_same_team_win = 0
 
     # 모든 매치 ID에 대해 확인
+    # user_matches에 있는 matches로 반복문 돌리고, set을 이용하여 집합으 통해 
     for match_id in set.intersection(*(set(matches.keys()) for matches in user_matches.values())):
         same_team_win = all(user_matches[username][match_id] == 'win' for username in usernames)
         same_team_loss = all(user_matches[username][match_id] == 'loss' for username in usernames)
 
+        #같은 팀이면서 승리했을 때
         if same_team_win:
             total_same_team_win += 1
+        # 같이 win 했거나 같이 loss했으면 같은 팀
         if same_team_win or same_team_loss:
             total_same_team += 1
 
+    # 같은 팀이 한 번 이상일 경우
     if total_same_team > 0:
         win_rate = (total_same_team_win / total_same_team) * 100
     else:
         win_rate = 0
+        await ctx.send('같은 팀이었던 경우가 없습니다.')
+        return
 
-    await ctx.send(f'같은 팀일 때 승률: {win_rate:.2f}%')
+    await ctx.send(f'같은 팀일 때 승률: {win_rate:.2f}%,  총 판수: {total_same_team}판')
 
 
 @bot.command(name='상대승률')
@@ -459,12 +466,14 @@ async def calculate_opponent_win_rate(ctx, username1, username2):
         if total_opponent_games_combined > 0:
             opponent_win_rates[username] = (total_opponent_win[username] / total_opponent_games_combined) * 100
         else:
-            opponent_win_rates[username] = 0
+            await ctx.send('서로 상대한 적이 없습니다.')
+            return
+            
 
     # 결과 출력
     result_message = f'{username1} vs {username2}\n'
     for username in [username1, username2]:
-        result_message += f'{username}의 상대승률: {opponent_win_rates[username]:.2f}%\n'
+        result_message += f'{username}의 상대승률: {opponent_win_rates[username]:.2f}%, 총 판수 : {total_opponent_games_combined}\n'
 
     await ctx.send(result_message)
 
@@ -478,10 +487,11 @@ async def calculate_individual_win_rate(ctx, username):
 
     if total_matches == 0:
         win_rate = 0
+        ctx.send(f'{username}님은 아직 한 경기도 안했습니다.')
     else:
         win_rate = (wins / total_matches) * 100
 
-    await ctx.send(f'{username}님의 개인 승률: {win_rate:.2f}%')
+    await ctx.send(f'{username}님의 개인 승률: {win_rate:.2f}%, 총 판수 : {total_matches}')
 
 
 bot.run(TOKEN)
