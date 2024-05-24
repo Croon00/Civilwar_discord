@@ -9,7 +9,6 @@ COPY . .
 
 # 필요한 라이브러리 설치
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install pytz 
 
 
 # config.json 파일을 /app 디렉토리로 복사
