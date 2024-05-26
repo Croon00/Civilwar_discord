@@ -18,5 +18,9 @@ def setup(bot):
         embed.add_field(name="같은팀승률", value="(이름 2 ~ 5명)을 통해 해당 사람들이 같은팀일 경우 승률 확인")
         embed.add_field(name="상대승률", value="(이름, 이름)을 통해 해당 사람들이 상대팀일 경우 승률 확인")
         embed.add_field(name="개인승률", value="(이름)을 통해 해당 사람의 여태까지의 승률 확인")
-        
+        embed.add_field(name="시즌1 정보들", value="(상대승률, 개인승률, 같은팀승률, 모든사용자) 앞에 '시즌1'붙여 쓰면 시즌1 정보 확인 가능")
+        embed.add_field(name="챔피언", value="(챔피언) 을 통해서 해당 챔피언의 기본 스탯 확인 가능")
+        embed.add_field(name="숙련도", value="(이름)을 통해서 해당 사람의 챔피언 숙련도 top 5 정보 확인 가능")
+        embed.add_field(name="mvp", value="(이름)을 통해서 mvp 투표")
+        embed.add_field(name="mvp비우기", value="mvp 투표했던거 초기화")
         await ctx.send(embed=embed)

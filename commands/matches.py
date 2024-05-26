@@ -8,8 +8,23 @@ from database.db import get_db_connection
 
 def setup(bot):
     conn, cursor = get_db_connection()
+    
+    mvp_list = {}
     team1_scores = {}
     team2_scores = {}
+
+    def get_streak(cursor, username):
+        cursor.execute('''
+            SELECT win_loss 
+            FROM user_matches 
+            WHERE username = ? 
+            ORDER BY match_datetime DESC 
+            LIMIT 2
+        ''', (username,))
+        rows = cursor.fetchall()
+        if len(rows) == 2 and rows[0][0] == rows[1][0]:
+            return rows[0][0]
+        return None
 
     @bot.command(name='팀나누기')
     async def random_team_split(ctx, *users):
@@ -55,7 +70,17 @@ def setup(bot):
         team1_sorted = sorted(team1, key=lambda x: x[1])
         team2_sorted = sorted(team2, key=lambda x: x[1])
 
-        await ctx.send(f'Team 1 (Score: {team1_score}):\n{[f"{user[0]}: {user[1]}" for user in team1_sorted]}\n\nTeam 2 (Score: {team2_score}):\n{[f"{user[0]}: {user[1]}" for user in team2_sorted]}\n\nScore Difference: {min_score_diff}')
+        # 팀 구성원을 한 줄로 나열
+        team1_members = ", ".join([f"{user[0]}: {user[1]}" for user in team1_sorted])
+        team2_members = ", ".join([f"{user[0]}: {user[1]}" for user in team2_sorted])
+
+        embed = discord.Embed(title="팀 나누기 결과", description=f"Score Difference: {min_score_diff}", color=0x00ff00)
+        embed.add_field(name="Team 1", value=team1_members, inline=False)
+        embed.add_field(name="Team 1 Score", value=str(team1_score), inline=False)
+        embed.add_field(name="Team 2", value=team2_members, inline=False)
+        embed.add_field(name="Team 2 Score", value=str(team2_score), inline=False)
+
+        await ctx.send(embed=embed)
 
     @bot.command(name='팀1승리')
     async def team1_win(ctx):
@@ -70,11 +95,19 @@ def setup(bot):
         winner_team = 1
 
         for username, score in team1_scores.items():
-            cursor.execute('UPDATE users SET score = score + 1 WHERE username = ?', (username,))
+            streak = get_streak(cursor, username)
+            points_to_add = 1
+            if streak == 'win':
+                points_to_add = 2
+            cursor.execute('UPDATE users SET score = score + ? WHERE username = ?', (points_to_add, username))
             cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
             cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
         for username, score in team2_scores.items():
-            cursor.execute('UPDATE users SET score = score - 1 WHERE username = ?', (username,))
+            streak = get_streak(cursor, username)
+            points_to_subtract = 1
+            if streak == 'loss':
+                points_to_subtract = 2
+            cursor.execute('UPDATE users SET score = score - ? WHERE username = ?', (points_to_subtract, username))
             cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
             cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
         conn.commit()
@@ -94,10 +127,13 @@ def setup(bot):
             cursor.execute('INSERT INTO user_matches (username, match_id, win_loss, match_datetime) VALUES (?, ?, ?, ?)', 
                            (username, match_id, 'loss', match_end_time))
 
+        conn.commit()
+
         team1_scores = {}
         team2_scores = {}
         
-        await ctx.send('팀 1이 승리했습니다!')
+        embed = discord.Embed(title="팀 1 승리", description="팀 1이 승리했습니다!", color=0x00ff00)
+        await ctx.send(embed=embed)
 
     @bot.command(name='팀2승리')
     async def team2_win(ctx):
@@ -112,11 +148,19 @@ def setup(bot):
         winner_team = 2
 
         for username, score in team1_scores.items():
-            cursor.execute('UPDATE users SET score = score - 1 WHERE username = ?', (username,))
+            streak = get_streak(cursor, username)
+            points_to_subtract = 1
+            if streak == 'loss':
+                points_to_subtract = 2
+            cursor.execute('UPDATE users SET score = score - ? WHERE username = ?', (points_to_subtract, username))
             cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
             cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
         for username, score in team2_scores.items():
-            cursor.execute('UPDATE users SET score = score + 1 WHERE username = ?', (username,))
+            streak = get_streak(cursor, username)
+            points_to_add = 1
+            if streak == 'win':
+                points_to_add = 2
+            cursor.execute('UPDATE users SET score = score + ? WHERE username = ?', (points_to_add, username))
             cursor.execute('UPDATE users SET top_score = MAX(score, top_score) WHERE username = ?', (username,))
             cursor.execute('UPDATE users SET low_score = MIN(score, low_score) WHERE username = ?', (username,))
         conn.commit()
@@ -136,55 +180,14 @@ def setup(bot):
             cursor.execute('INSERT INTO user_matches (username, match_id, win_loss, match_datetime) VALUES (?, ?, ?, ?)', 
                            (username, match_id, 'win', match_end_time))
 
+        conn.commit()
+
         team1_scores = {}
         team2_scores = {}
         
-        await ctx.send('팀 2가 승리했습니다!')
-
-    @bot.command(name='최근매치')
-    async def check_recent_team(ctx):
-        cursor.execute('SELECT * FROM matches ORDER BY match_datetime DESC LIMIT 5')
-        rows = cursor.fetchall()
-
-        if rows:
-            for row in rows:
-                match_datetime = row[12]
-                winner_team = row[11]
-                if winner_team == 1:
-                    winners = [row[1], row[2], row[3], row[4], row[5]]
-                    losers = [row[6], row[7], row[8], row[9], row[10]]
-                elif winner_team == 2:
-                    winners = [row[6], row[7], row[8], row[9], row[10]]
-                    losers = [row[1], row[2], row[3], row[4], row[5]]
-                
-                await ctx.send(f'매치 시간: {match_datetime}')
-                await ctx.send(f'승자 팀 플레이어들: {winners}')
-                await ctx.send(f'패자 팀 플레이어들: {losers}')
-        else:
-            await ctx.send('등록된 경기 기록이 없습니다.')
-
-    @bot.command(name='전적')
-    async def recent_matches(ctx, username: str):
-        cursor.execute('''
-            SELECT matches.match_datetime, user_matches.win_loss
-            FROM user_matches
-            INNER JOIN matches ON user_matches.match_id = matches.match_id
-            WHERE user_matches.username = ?
-            ORDER BY matches.match_datetime DESC
-            LIMIT 5
-        ''', (username,))
-        rows = cursor.fetchall()
-
-        if rows:
-            recent_matches_info = []
-            for row in rows:
-                match_datetime, win_loss = row
-                recent_matches_info.append(f'{match_datetime}: {"승" if win_loss == "win" else "패"}')
-
-            await ctx.send(f'{username}의 최근 5경기 승/패:\n' + '\n'.join(recent_matches_info))
-        else:
-            await ctx.send(f'{username}의 경기 기록이 없습니다.')
-
+        embed = discord.Embed(title="팀 2 승리", description="팀 2가 승리했습니다!", color=0x00ff00)
+        await ctx.send(embed=embed)
+ # 같은 팀 승률 계산
     @bot.command(name='같은팀승률')
     async def calculate_same_team_win_rate(ctx, *usernames):
         if len(usernames) < 2 or len(usernames) > 5:
@@ -217,13 +220,15 @@ def setup(bot):
 
         if total_same_team > 0:
             win_rate = (total_same_team_win / total_same_team) * 100
+            usernames_str = ', '.join(usernames)
+            result_message = f'({usernames_str}) 같은 팀일 때 승률: {win_rate:.2f}%, 총 판수: {total_same_team}판'
         else:
-            win_rate = 0
-            await ctx.send('같은 팀이었던 경우가 없습니다.')
-            return
+            result_message = '같은 팀이었던 경우가 없습니다.'
 
-        await ctx.send(f'같은 팀일 때 승률: {win_rate:.2f}%, 총 판수: {total_same_team}판')
+        embed = discord.Embed(title="같은 팀 승률", description=result_message, color=0x00ff00)
+        await ctx.send(embed=embed)
 
+    # 상대 승률 계산
     @bot.command(name='상대승률')
     async def calculate_opponent_win_rate(ctx, username1, username2):
         user_matches = {username: {} for username in [username1, username2]}
@@ -261,10 +266,12 @@ def setup(bot):
 
         result_message = f'{username1} vs {username2}\n'
         for username in [username1, username2]:
-            result_message += f'{username}의 상대승률: {opponent_win_rates[username]:.2f}%, 총 판수 : {total_opponent_games_combined}\n'
+            result_message += f'{username}의 상대승률: {opponent_win_rates[username]:.2f}%, 총 판수 : {total_opponent_games_combined}, 이긴 판수 : {total_opponent_win[username]}\n'
 
-        await ctx.send(result_message)
+        embed = discord.Embed(title="상대 승률", description=result_message, color=0x00ff00)
+        await ctx.send(embed=embed)
 
+    # 개인 승률 계산
     @bot.command(name='개인승률')
     async def calculate_individual_win_rate(ctx, username):
         cursor.execute("SELECT COUNT(*) FROM user_matches WHERE username = ? AND win_loss = 'win'", (username,))
@@ -275,8 +282,50 @@ def setup(bot):
 
         if total_matches == 0:
             win_rate = 0
-            ctx.send(f'{username}님은 아직 한 경기도 안했습니다.')
+            result_message = f'{username}님은 아직 한 경기도 안했습니다.'
         else:
             win_rate = (wins / total_matches) * 100
+            result_message = f'{username}님의 개인 승률: {win_rate:.2f}%, 총 판수 : {total_matches}, 이긴 판수 : {wins}'
 
-        await ctx.send(f'{username}님의 개인 승률: {win_rate:.2f}%, 총 판수 : {total_matches}')
+        embed = discord.Embed(title="개인 승률", description=result_message, color=0x00ff00)
+        await ctx.send(embed=embed)
+
+
+    @bot.command(name='mvp')
+    async def add_mvp(ctx, username: str):
+        nonlocal mvp_list
+        cursor.execute('SELECT score FROM users WHERE username = ?', (username,))
+        row = cursor.fetchone()
+        
+        if row:
+            # Increment the vote count for the user
+            if username in mvp_list:
+                mvp_list[username]['votes'] += 1
+            else:
+                mvp_list[username] = {'score': row[0], 'votes': 1}
+            
+            await ctx.send(f'{username}가 MVP 후보로 추가되었습니다. 현재 투표 수: {mvp_list[username]["votes"]}')
+        else:
+            await ctx.send(f'{username}를 찾을 수 없습니다.')
+
+        # Check if the total votes reach 10
+        total_votes = sum(user['votes'] for user in mvp_list.values())
+        if total_votes >= 10:
+            # Find the maximum score among the users
+            max_score = max(user['score'] for user in mvp_list.values())
+            top_users = [user for user, data in mvp_list.items() if data['score'] == max_score]
+
+            for user in top_users:
+                cursor.execute('UPDATE users SET mvp_point = mvp_point + 100 WHERE username = ?', (user,))
+            conn.commit()
+
+            await ctx.send(f'MVP 포인트가 추가되었습니다: {", ".join(top_users)}')
+
+            # Reset the mvp_list after processing
+            mvp_list = {}
+    
+    @bot.command(name='mvp비우기')
+    async def clear_mvp_list(ctx):
+        nonlocal mvp_list
+        mvp_list = {}
+        await ctx.send('MVP 후보 리스트가 초기화되었습니다.')
