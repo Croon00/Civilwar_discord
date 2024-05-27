@@ -3,8 +3,8 @@ name: Deploy to ECR and Lambda
 on:
   push:
     branches:
-      - main  # or the branch you want to deploy from
-  workflow_dispatch:  # Allows manual triggering of the workflow
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -31,14 +31,23 @@ jobs:
         run: |
           aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/${{ secrets.S3_CONFIG_KEY }} ./config.json
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build and tag Docker image
         env:
           ECR_REGISTRY: 905418077180.dkr.ecr.us-east-1.amazonaws.com
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          ECR_REPOSITORY: civilwar-bot
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Push Docker image to ECR
+        env:
+          ECR_REGISTRY: 905418077180.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REPOSITORY: civilwar-bot
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Logout from ECR
         run: |
