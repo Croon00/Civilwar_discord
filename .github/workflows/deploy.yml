@@ -1,1 +1,46 @@
+name: Deploy to ECR and Lambda
+
+on:
+  push:
+    branches:
+      - main  # or the branch you want to deploy from
+  workflow_dispatch:  # Allows manual triggering of the workflow
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: 905418077180.dkr.ecr.us-east-1.amazonaws.com
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Logout from ECR
+        run: |
+          docker logout $ECR_REGISTRY
+
+      - name: Update Lambda function
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          LAMBDA_FUNCTION_NAME: my-docker-lambda
+          ECR_IMAGE_URI: 905418077180.dkr.ecr.us-east-1.amazonaws.com/civilwar-bot:latest
+        run: |
+          aws lambda update-function-code --function-name $LAMBDA_FUNCTION_NAME --image-uri $ECR_IMAGE_URI --region $AWS_REGION
 
