@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 
 # config.json 파일을 /app 디렉토리로 복사
-COPY config.json /app/config.jso
+COPY config.json /app/config.json
 
 # 환경 변수 설정
 ENV CONFIG_PATH="/app/config.json"
