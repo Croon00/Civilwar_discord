@@ -59,36 +59,5 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Deploy to EC2
-        env:
-          ECR_REGISTRY: 905418077180.dkr.ecr.us-east-1.amazonaws.com
-          ECR_REPOSITORY: civilwar-bot
-          AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 << 'EOF'
-            # AWS CLI 설치 확인 및 설치
-            if ! command -v aws &> /dev/null
-            then
-                echo "AWS CLI not found, installing..."
-                sudo apt-get update
-                sudo apt-get install -y curl unzip
-                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                unzip awscliv2.zip
-                sudo ./aws/install
-                aws --version
-                aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws configure set default.region $AWS_REGION
-            fi
-
-            # Log in to ECR
-            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-
-            # Pull the latest image
-            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-            # Stop and remove any existing container
-            docker rm -f civilwar-bot || true
-
-            # Run the new container
-            docker run -d --name civilwar-bot $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          EOF
+          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 'bash -s' < update_docker.sh
