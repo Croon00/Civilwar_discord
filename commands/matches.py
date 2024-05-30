@@ -294,32 +294,52 @@ def setup(bot):
     @bot.command(name='mvp')
     async def add_mvp(ctx, username: str):
         nonlocal mvp_list
-        cursor.execute('SELECT score FROM users WHERE username = ?', (username,))
+        cursor.execute('SELECT 1 FROM users WHERE username = ?', (username,))
         row = cursor.fetchone()
         
         if row:
+            # 사용자 추가 여부 확인
+            is_new_candidate = username not in mvp_list
+
             # Increment the vote count for the user
-            if username in mvp_list:
-                mvp_list[username]['votes'] += 1
+            if is_new_candidate:
+                mvp_list[username] = 1
             else:
-                mvp_list[username] = {'score': row[0], 'votes': 1}
+                mvp_list[username] += 1
+
+            # Calculate total votes
+            total_votes = sum(mvp_list.values())
             
-            await ctx.send(f'{username}가 MVP 후보로 추가되었습니다. 현재 투표 수: {mvp_list[username]["votes"]}')
+            if is_new_candidate:
+                embed = discord.Embed(title="MVP 후보 추가", description=f'{username}가 MVP 후보로 추가되었습니다.', color=0x00ff00)
+            else:
+                embed = discord.Embed(title="투표 갱신", description=f'{username}가 투표를 받았습니다.', color=0x00ff00)
+            
+            embed.add_field(name="현재 득표 수", value=mvp_list[username], inline=False)
+            embed.add_field(name="총 투표 수", value=total_votes, inline=False)
+            await ctx.send(embed=embed)
         else:
-            await ctx.send(f'{username}를 찾을 수 없습니다.')
+            embed = discord.Embed(title="오류", description=f'{username}를 찾을 수 없습니다.', color=0xff0000)
+            await ctx.send(embed=embed)
 
-        # Check if the total votes reach 10
-        total_votes = sum(user['votes'] for user in mvp_list.values())
+        total_votes = sum(mvp_list.values())
         if total_votes >= 10:
-            # Find the maximum score among the users
-            max_score = max(user['score'] for user in mvp_list.values())
-            top_users = [user for user, data in mvp_list.items() if data['score'] == max_score]
+            # Find the maximum votes among the users
+            max_votes = max(mvp_list.values())
+            top_users = [user for user, votes in mvp_list.items() if votes == max_votes]
 
+            updated_users = []
             for user in top_users:
                 cursor.execute('UPDATE users SET mvp_point = mvp_point + 100 WHERE username = ?', (user,))
+                cursor.execute('SELECT mvp_point FROM users WHERE username = ?', (user,))
+                updated_row = cursor.fetchone()
+                if updated_row:
+                    updated_users.append(f"{user} (MVP 포인트: {updated_row[0]})")
             conn.commit()
 
-            await ctx.send(f'MVP 포인트가 추가되었습니다: {", ".join(top_users)}')
+            embed = discord.Embed(title="MVP 포인트 추가", description="MVP 포인트 100점이 추가되었습니다.", color=0x00ff00)
+            embed.add_field(name="사용자의 현재 mvp포인트", value=", ".join(updated_users), inline=False)
+            await ctx.send(embed=embed)
 
             # Reset the mvp_list after processing
             mvp_list = {}
