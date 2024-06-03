@@ -114,9 +114,9 @@ def setup(bot):
 
         cursor.execute('INSERT INTO matches (team1_username1, team1_username2, team1_username3, team1_username4, team1_username5, '
                        'team2_username1, team2_username2, team2_username3, team2_username4, team2_username5, '
-                       'winner_team, match_datetime) '
-                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                       (*team1_scores.keys(), *team2_scores.keys(), winner_team, match_end_time))
+                       'winner_team, match_datetime, mvp_username) '
+                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       (*team1_scores.keys(), *team2_scores.keys(), winner_team, match_end_time, None))
         conn.commit()
 
         match_id = cursor.lastrowid
@@ -168,8 +168,8 @@ def setup(bot):
         cursor.execute('INSERT INTO matches (team1_username1, team1_username2, team1_username3, team1_username4, team1_username5, '
                        'team2_username1, team2_username2, team2_username3, team2_username4, team2_username5, '
                        'winner_team, match_datetime) '
-                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                       (*team1_scores.keys(), *team2_scores.keys(), winner_team, match_end_time))
+                       'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       (*team1_scores.keys(), *team2_scores.keys(), winner_team, match_end_time, None))
         conn.commit()
 
         match_id = cursor.lastrowid
@@ -323,7 +323,24 @@ def setup(bot):
             await ctx.send(embed=embed)
 
         total_votes = sum(mvp_list.values())
+
         if total_votes >= 10:
+
+            mvp_usernames = ', '.join(top_users)
+            
+            # 가장 최근 매치의 match_id를 가져와서 업데이트
+            cursor.execute('''
+                SELECT match_id
+                FROM matches
+                ORDER BY match_datetime DESC
+                LIMIT 1
+            ''')
+            last_match_id = cursor.fetchone()[0]
+            
+            cursor.execute('UPDATE matches SET mvp_username = ? WHERE match_id = ?', (mvp_usernames, last_match_id))
+            conn.commit()
+
+
             # Find the maximum votes among the users
             max_votes = max(mvp_list.values())
             top_users = [user for user, votes in mvp_list.items() if votes == max_votes]
@@ -349,3 +366,39 @@ def setup(bot):
         nonlocal mvp_list
         mvp_list = {}
         await ctx.send('MVP 후보 리스트가 초기화되었습니다.')
+
+    @bot.command(name='최근매치')
+    async def recent_matches(ctx):
+        cursor.execute('''
+            SELECT team1_username1, team1_username2, team1_username3, team1_username4, team1_username5,
+                team2_username1, team2_username2, team2_username3, team2_username4, team2_username5,
+                winner_team, match_datetime, mvp_username
+            FROM matches
+            ORDER BY match_datetime DESC
+            LIMIT 5
+        ''')
+        matches = cursor.fetchall()
+        
+        if matches:
+            embed = discord.Embed(title="최근 5경기 매치", color=0x00ff00)
+            for i, match in enumerate(matches, start=1):
+                team1 = match[:5]
+                team2 = match[5:10]
+                winner_team = match[10]
+                match_datetime = match[11]
+                mvp_username = match[12]
+
+                team1_str = ", ".join(team1)
+                team2_str = ", ".join(team2)
+                winner_str = "Team 1" if winner_team == 1 else "Team 2"
+                mvp_username_str = mvp_username
+
+                embed.add_field(name=f"Match {i} - Team 1", value=team1_str, inline=False)
+                embed.add_field(name=f"Match {i} - Team 2", value=team2_str, inline=False)
+                embed.add_field(name=f"Match {i} - 승리 팀", value=winner_str, inline=False)
+                embed.add_field(name=f"Match {i} - 매치 날짜", value=match_datetime, inline=False)
+                embed.add_field(name=f"Match {i} - MVP", value=mvp_username_str, inline=False)
+        else:
+            embed = discord.Embed(title="최근 매치", description="최근 매치를 찾을 수 없습니다.", color=0xff0000)
+        
+        await ctx.send(embed=embed)
