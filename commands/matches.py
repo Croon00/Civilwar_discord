@@ -187,6 +187,8 @@ def setup(bot):
         
         embed = discord.Embed(title="팀 2 승리", description="팀 2가 승리했습니다!", color=0x00ff00)
         await ctx.send(embed=embed)
+        
+        
  # 같은 팀 승률 계산
     @bot.command(name='같은팀승률')
     async def calculate_same_team_win_rate(ctx, *usernames):
