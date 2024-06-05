@@ -327,6 +327,9 @@ def setup(bot):
         total_votes = sum(mvp_list.values())
 
         if total_votes >= 10:
+            # Find the maximum votes among the users
+            max_votes = max(mvp_list.values())
+            top_users = [user for user, votes in mvp_list.items() if votes == max_votes]
 
             mvp_usernames = ', '.join(top_users)
             
@@ -341,11 +344,6 @@ def setup(bot):
             
             cursor.execute('UPDATE matches SET mvp_username = ? WHERE match_id = ?', (mvp_usernames, last_match_id))
             conn.commit()
-
-
-            # Find the maximum votes among the users
-            max_votes = max(mvp_list.values())
-            top_users = [user for user, votes in mvp_list.items() if votes == max_votes]
 
             updated_users = []
             for user in top_users:
