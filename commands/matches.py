@@ -167,7 +167,7 @@ def setup(bot):
 
         cursor.execute('INSERT INTO matches (team1_username1, team1_username2, team1_username3, team1_username4, team1_username5, '
                        'team2_username1, team2_username2, team2_username3, team2_username4, team2_username5, '
-                       'winner_team, match_datetime) '
+                       'winner_team, match_datetime, mvp_username) '
                        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                        (*team1_scores.keys(), *team2_scores.keys(), winner_team, match_end_time, None))
         conn.commit()
