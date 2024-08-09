@@ -6,7 +6,7 @@ def setup(bot):
     @bot.command(name="명령어")
     async def my_help(ctx):
         embed = discord.Embed(title="Custom Help", description="명령어들:")
-        embed.add_field(name="사용자추가", value="(이름, 점수)을 통해 사용자 정보 추가")
+        embed.add_field(name="사용자추가", value="(이름, 점수)을 통해 사용자 추가")
         embed.add_field(name="모든사용자", value="모든 사용자 점수 정보 확인")
         embed.add_field(name="전적", value="(이름)을 통해 최근 5경기 전적 확인")
         embed.add_field(name="점수", value="(이름)을 통해 현재 점수 확인 ")
