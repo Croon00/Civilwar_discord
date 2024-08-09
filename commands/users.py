@@ -7,7 +7,7 @@ def setup(bot):
 
     @bot.command(name='사용자추가')
     async def add_info(ctx, username: str, score: int):
-        cursor.execute('INSERT OR REPLACE INTO users (username, score, low_score, top_score) VALUES (?, ?)', (username, score, score, score))
+        cursor.execute('INSERT OR REPLACE INTO users (username, score, low_score, top_score) VALUES (?, ?, ?, ?)', (username, score, score, score))
         conn.commit()
         embed = discord.Embed(title="사용자 추가", description=f'사용자 정보를 추가했습니다: {username}, {score}', color=0x00ff00)
         await ctx.send(embed=embed)
