@@ -50,7 +50,8 @@ def init_db():
         team2_username4 TEXT,
         team2_username5 TEXT,
         winner_team INTEGER,
-        match_datetime TEXT
+        match_datetime TEXT,
+        mvp_username TEXT
     )
     ''')
     
