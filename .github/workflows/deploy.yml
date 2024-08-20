@@ -58,6 +58,12 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Log in to ECR on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 '
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin 905418077180.dkr.ecr.us-east-1.amazonaws.com
+          '
+
       - name: Pull the latest Docker image on EC2
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 '
