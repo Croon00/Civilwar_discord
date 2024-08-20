@@ -60,15 +60,21 @@ jobs:
 
       - name: Pull the latest Docker image on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 'docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest'
+          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 '
+            ECR_REGISTRY=905418077180.dkr.ecr.us-east-1.amazonaws.com
+            ECR_REPOSITORY=civilwar-bot
+            docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          '
 
       - name: Remove existing container (if any)
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 'docker rm -f civilwar-bot || true'
+          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 '
+            docker rm -f civilwar-bot || true
+          '
 
       - name: Deploy to EC2 and start new container
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 '
             docker run --init -d --name civilwar-bot \
-            $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            905418077180.dkr.ecr.us-east-1.amazonaws.com/civilwar-bot:latest
           '
