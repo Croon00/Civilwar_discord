@@ -7,14 +7,14 @@ WORKDIR /app
 # 호스트의 현재 디렉토리의 모든 파일을 컨테이너의 /app 디렉토리로 복사
 COPY . .
 
-# 필요한 라이브러리 설치
-RUN pip install --no-cache-dir -r requirements.txt
-
-# config.json 파일을 /app 디렉토리로 복사
+# S3에서 다운로드한 config.json 파일 복사
 COPY config.json /app/config.json
 
 # civilwar_user.db 파일을 /app 디렉토리로 복사
 COPY civilwar_user.db /app/civilwar_user.db
+
+# 필요한 라이브러리 설치
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 환경 변수 설정
 ENV CONFIG_PATH="/app/config.json"

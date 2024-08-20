@@ -31,13 +31,13 @@ jobs:
         run: |
           aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/${{ secrets.S3_CONFIG_KEY }} ./config.json
 
-      - name: Build and tag Docker image
+      - name: Build and tag Docker image (no cache)
         env:
           ECR_REGISTRY: 905418077180.dkr.ecr.us-east-1.amazonaws.com
           ECR_REPOSITORY: civilwar-bot
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build --no-cache -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Push Docker image to ECR
@@ -58,6 +58,10 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Pull the latest Docker image on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 'docker pull $ECR_REGISTRY/$ECR_REPOSITORY:latest'
+
       - name: Remove existing container (if any)
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 'docker rm -f civilwar-bot || true'
@@ -66,5 +70,5 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@54.175.170.30 '
             docker run --init -d --name civilwar-bot \
-            905418077180.dkr.ecr.us-east-1.amazonaws.com/civilwar-bot:latest
+            $ECR_REGISTRY/$ECR_REPOSITORY:latest
           '
